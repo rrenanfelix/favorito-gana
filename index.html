@@ -1,0 +1,78 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAV WAVE</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--line:#2a313c;--tx:#e6edf3;--mut:#8b949e;--ok:#3fb950;--bad:#f85149;--warn:#d29922;--acc:#58a6ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,sans-serif}
+header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+h1{font-size:20px;margin:0}h1 small{color:var(--mut);font-weight:400;font-size:13px}
+.tabs{display:flex;gap:6px;margin-left:auto}.tabs button,.btn{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+#ver{display:flex;gap:4px;margin-right:10px}.tabs button.on{border-color:var(--acc);color:var(--acc)}main{padding:16px 20px;max-width:1300px;margin:auto}
+.rules{color:var(--mut);font-size:12.5px;margin-bottom:12px}.rules b{color:var(--tx)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0 16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}.kpi .l{color:var(--mut);font-size:12px}.kpi .v{font-size:22px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}.card.ap{border-color:var(--ok)}
+.top{display:flex;justify-content:space-between;color:var(--mut);font-size:12px}.teams{font-size:16px;font-weight:600;margin:6px 0}
+.fav{color:var(--ok)}.odd{font-size:20px;font-weight:700;color:var(--acc)}
+.chk{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}.chk span{font-size:11.5px;padding:3px 7px;border-radius:6px;background:#0d1117;border:1px solid var(--line)}
+.chk .y{border-color:#2ea04366;color:var(--ok)}.chk .n{border-color:#f8514966;color:var(--bad)}
+.form{font-family:ui-monospace,monospace;font-size:12px;color:var(--mut)}.W{color:var(--ok)}.L{color:var(--bad)}.D{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--mut);font-weight:500}
+.g{color:var(--ok);font-weight:600}.r{color:var(--bad);font-weight:600}.mut{color:var(--mut)}a{color:var(--acc)}
+.badge{font-size:11px;padding:2px 6px;border-radius:5px;background:#1f6feb33;color:var(--acc)}
+.sec{margin:22px 0 8px;font-size:15px;font-weight:600}.hide{display:none}.bar{height:8px;background:var(--ok);border-radius:4px}
+</style></head><body>
+<header><h1>⭐ FAV WAVE <small>gana el favorito · fav +0.5 · rival −1.5</small></h1>
+<div class="tabs"><span id="ver"><button data-v="3" class="on">V3</button><button data-v="2">V2</button><button data-v="1">V1</button></span><button data-t="hoje" class="on">Partidos</button><button data-t="res">Resultados</button><button data-t="bt">Backtest 15d</button></div></header>
+<main>
+<div class="rules" id="r3">V3 (análisis de los reds de la v2): todo lo de la V2 + cuota del favorito <b>1.40–1.52</b> + el rival <b>recibe ≥1.2 goles/partido</b> en los últimos 10. Los reds de la V2 eran partidos cerrados (0x0, 1x1) contra rivales de defensa sólida y favoritos de cuota más alta.</div>
+<div class="rules hide" id="r2">V2 (análisis de los reds de la v1): cuota del favorito <b>1.40–1.60</b> · el fav marcó en <b>≥7/10</b> · el rival hizo <b>≤1 gol en ≥7/10</b> · <b>sin divisiones bajas, juveniles, femenino ni equipos B</b>. Se quitaron las reglas "≥5 victorias" y "sin derrota en los 2 últimos" (no mejoraban el acierto). Green = gana el favorito y el rival hace como máximo 1 gol.</div>
+<div class="rules hide" id="r1">V1: cuota del favorito <b>1.40–1.70</b> · fav ≥<b>5V</b> en los últimos 10 y <b>sin derrota en los 2 últimos</b> · el fav marcó en <b>≥7/10</b> · el rival hizo <b>≤1 gol en ≥7/10</b>. Green = gana el favorito y el rival hace como máximo 1 gol. Cuotas: Betano AR y, si el partido no está, Betano/Bet365 vía API-Football.</div>
+<section id="hoje"><div class="kpis" id="k1"></div><div class="grid" id="ap"></div>
+<div class="sec">Casi (faltó 1 regla)</div><div class="grid" id="quase"></div></section>
+<section id="res" class="hide"><div class="kpis" id="k3"></div><div class="rules" id="resnote"></div><table id="restab"></table></section>
+<section id="bt" class="hide"><div class="kpis" id="k2"></div><div id="btnote" class="rules"></div>
+<div class="sec">Por día</div><table id="days"></table><div class="sec">Entradas aprobadas</div><table id="btrows"></table></section>
+</main>
+<script>
+const B=location.pathname.startsWith('/favwave')?'/favwave':'';
+const $=s=>document.querySelector(s);const pct=x=>x==null?'–':(x*100).toFixed(1)+'%';
+const brl=x=>(x>=0?'+':'')+'$ '+x.toFixed(0);
+document.querySelectorAll('.tabs [data-t]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs [data-t]').forEach(x=>x.classList.toggle('on',x===b));['hoje','res','bt'].forEach(t=>$('#'+t).classList.toggle('hide',b.dataset.t!==t))});
+let V=3,S=null,BT=null;
+document.querySelectorAll('#ver button').forEach(b=>b.onclick=()=>{V=+b.dataset.v;document.querySelectorAll('#ver button').forEach(x=>x.classList.toggle('on',x===b));$('#r1').classList.toggle('hide',V!==1);$('#r2').classList.toggle('hide',V!==2);$('#r3').classList.toggle('hide',V!==3);render()});
+const kpi=(l,v)=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`;
+const form=f=>f.map(r=>`<span class="${r.res}" title="${r.date} ${r.home?'vs':'@'} ${r.opp}">${r.gf}-${r.ga}</span>`).join(' ');
+const AP=p=>V===4?p.approved_v4:V===3?p.approved_v3:V===2?p.approved_v2:p.approved, NOK=p=>V===4?p.n_ok_v4:V===3?p.n_ok_v3:V===2?p.n_ok_v2:p.n_ok;
+function card(p){const c=V===4?p.v4:V===3?p.v3:V===2?p.v2:p.checks,ko=new Date(p.kickoff);
+ const ch=(V===4?[['odd','Cuota'],['liga','Liga'],['marcou','Marcó'],['zebra','Rival ≤1'],['sofre','Rival recibe'],['gap','Dif. goles'],['amostra','Muestra']]:V===3?[['odd','Cuota'],['liga','Liga'],['marcou','Marcó'],['zebra','Rival ≤1'],['sofre','Rival recibe'],['amostra','Muestra']]:V===2?[['odd','Cuota'],['liga','Liga'],['marcou','Marcó'],['zebra','Rival ≤1'],['amostra','Muestra']]:[['vit','Victorias'],['last2','2 últ.'],['marcou','Marcó'],['zebra','Rival ≤1'],['amostra','Muestra']]).map(([k,l])=>`<span class="${c[k].ok?'y':'n'}">${c[k].ok?'✓':'✗'} ${l} ${String(c[k].v).replace('divisão baixa','división baja').replace('base/feminino/time B','juveniles/femenino/equipo B')}</span>`).join('');
+ return `<div class="card ${AP(p)?'ap':''}"><div class="top"><span>${p.country} · ${p.league}</span><span>${ko.toLocaleDateString('es-AR',{weekday:'short',day:'2-digit',month:'2-digit'})} ${ko.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</span></div>
+ <div style="display:flex;justify-content:space-between;align-items:center"><div class="teams">${p.fav_home?`<span class="fav">${p.home}</span> x ${p.away}`:`${p.home} x <span class="fav">${p.away}</span>`}</div><div class="odd">${p.fav_odd.toFixed(2)}</div></div>
+ <div class="mut" style="font-size:12px">Fav: ${p.fav} (${p.fav_home?'local':'visitante'}) · ${p.betano_url?`<a href="${p.betano_url}" target="_blank">${p.book}</a>`:`<span class="badge">${p.book}</span>`} · promedio goles fav ${p.fav_gf} / rival ${p.dog_gf}</div>
+ <div class="chk">${ch}</div><div class="form">Fav: ${form(p.fav_form)}</div><div class="form">Riv: ${form(p.dog_form)}</div></div>`}
+let PK={};
+async function load(){S=await (await fetch('data/scan.json?'+Date.now())).json();BT=await (await fetch('data/backtest.json?'+Date.now())).json();try{PK=await (await fetch('data/picks.json?'+Date.now())).json()}catch(e){};render()}
+function renderRes(){const VK='v'+V;const rows=Object.values(PK).filter(p=>p[VK]).sort((a,b)=>b.kickoff.localeCompare(a.kickoff));
+ const g=rows.filter(p=>p.result==='green').length,r=rows.filter(p=>p.result==='red').length,lv=rows.filter(p=>(p.result||'').startsWith('live')).length,pd=rows.filter(p=>!p.result).length;
+ const pnl=rows.reduce((s,p)=>s+(p.result==='green'?(p.fav_odd-1)*100:p.result==='red'?-100:0),0);
+ $('#k3').innerHTML=kpi('Entradas V'+V,rows.length)+kpi('Green',`<span class="g">${g}</span>`)+kpi('Red',`<span class="r">${r}</span>`)+kpi('En vivo',lv)+kpi('Pendientes',pd)+kpi('Acierto',g+r?pct(g/(g+r)):'–')+kpi('P&L (cuota fav, stake 100)',`<span class="${pnl>=0?'g':'r'}">${brl(pnl)}</span>`);
+ $('#resnote').innerHTML='Entradas congeladas al momento del scan (cuota del favorito de ese momento). Green = gana el favorito y el rival hace como máximo 1 gol. En vivo: 🟢 escenario green ahora, 🔴 el rival ya hizo 2.';
+ const lab=p=>p.result==='green'?'<span class="g">GREEN</span>':p.result==='red'?'<span class="r">RED</span>':p.result==='void'?'<span class="mut">APLAZADO</span>':p.result==='live_green'?`🟢 ${p.elapsed||''}'`:p.result==='live_red'?`🔴 ${p.elapsed||''}'`:p.result==='live'?`⏱ ${p.elapsed||''}'`:'<span class="mut">pendiente</span>';
+ $('#restab').innerHTML='<tr><th>Data</th><th>Liga</th><th>Jogo</th><th>Fav</th><th>Odd</th><th>Marcador</th><th>Estado</th><th>Versiones</th></tr>'+rows.map(p=>{const ko=new Date(p.kickoff);return `<tr><td>${ko.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})} ${ko.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</td><td class="mut">${p.country} · ${p.league}</td><td>${p.home} x ${p.away}</td><td>${p.fav}</td><td>${(+p.fav_odd).toFixed(2)}</td><td>${p.score||'–'}</td><td>${lab(p)}</td><td class="mut">${['v1','v2','v3','v4'].filter(k=>p[k]).join(' ').toUpperCase()}</td></tr>`}).join('')||'<tr><td class="mut">Sin entradas todavía.</td></tr>'}
+
+function render(){const s=S||{};renderRes();
+ if(s.rows){const ap=s.rows.filter(p=>AP(p)&&p.v4),q=s.rows.filter(p=>p.v4&&!AP(p)&&NOK(p)>=4&&p.checks.amostra.ok);
+  $('#k1').innerHTML=kpi('Aprobados',ap.length)+kpi('En el rango de cuota',s.rows.length)+kpi('Partidos analizados',s.n_fixtures)+kpi('Cuotas Betano AR',s.n_betano_ar)+kpi('Actualizado',new Date(s.generated).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+(s.busy?' ⏳':''));
+  $('#ap').innerHTML=ap.map(card).join('')||'<div class="mut">Ningún partido pasó todas las reglas.</div>';$('#quase').innerHTML=q.slice(0,24).map(card).join('')||'<div class="mut">–</div>';}
+ const b0=BT||{}; const bv=V===4?b0.v4:V===3?b0.v3:V===2?b0.v2:null; const b=bv?{...b0,approved:bv.approved,by_day:bv.by_day,rows:bv.rows}:b0;
+ if(b.approved){const a=b.approved,all=b.all_in_range;
+  $('#k2').innerHTML=kpi('Entradas V'+V,a.n)+kpi('Green (gana fav + rival ≤1)',pct(a.hit))+kpi('Solo "gana el favorito"',pct(a.hit_win))+kpi('ROI back fav (stake 100)',`<span class="${a.pnl_win>=0?'g':'r'}">${pct(a.roi_win)}</span>`)+kpi('Cuota mínima p/ no perder (crear apuesta)',a.breakeven_builder||'–')+kpi('Sin filtro (todo el rango 1.40–1.70)',pct(all.hit)+' · '+all.n+' partidos');
+  const nOdd=b.coverage.filter(c=>c.odds_api>0).length;
+  $('#btnote').innerHTML=`Período ${b.dates[0]} → ${b.dates.at(-1)}. La API-Football solo guarda cuotas de ~7 días: ${nOdd} de los ${b.days} días tienen cuotas de todas las ligas; en los más antiguos solo entran partidos con cuota Betano AR guardada (ligas principales, fav ≥1.60). "ROI back fav" = apostar solo a la victoria del favorito con la cuota 1X2. La apuesta de la estrategia (gana fav + fav +0.5 + rival −1.5) es un Crear Apuesta: es rentable si su cuota es mayor que la "cuota mínima p/ no perder".`;
+  $('#days').innerHTML='<tr><th>Día</th><th>Partidos c/ cuota</th><th>Entradas</th><th>Green</th><th>Acierto</th><th>P&L back fav</th></tr>'+b.by_day.map((d,i)=>`<tr><td>${d.date}</td><td class="mut">${b.coverage[i].with_odds}</td><td>${d.n}</td><td>${d.green}</td><td>${pct(d.hit)}</td><td class="${d.pnl_win>=0?'g':'r'}">${d.n?brl(d.pnl_win):'–'}</td></tr>`).join('');
+  $('#btrows').innerHTML='<tr><th>Fecha</th><th>Liga</th><th>Partido</th><th>Fav</th><th>Cuota</th><th>Resultado</th><th>Estado</th><th>Fuente</th></tr>'+b.rows.map(r=>`<tr><td>${r.date.slice(5)}</td><td class="mut">${r.country} · ${r.league}</td><td>${r.home} x ${r.away}</td><td>${r.fav}</td><td>${r.fav_odd.toFixed(2)}</td><td>${r.score}</td><td class="${r.green?'g':'r'}">${r.green?'GREEN':r.fav_won?'RED (rival 2+)':'RED'}</td><td class="mut">${r.book}</td></tr>`).join('');}
+}
+if($('#ref'))$('#ref').onclick=async()=>{await fetch(B+'/api/refresh',{method:'POST'});$('#ref').textContent='⏳ scan rodando…';$('#ref').disabled=true;const t=setInterval(async()=>{const s=await (await fetch('data/scan.json?'+Date.now())).json();if(!s.busy){clearInterval(t);$('#ref').textContent='🔄 Scan';$('#ref').disabled=false;load()}},10000)};
+if($('#bres'))$('#bres').onclick=async()=>{$('#bres').textContent='⏳ buscando…';await fetch(B+'/api/results',{method:'POST'});$('#bres').textContent='⚽ Resultados';await load();document.querySelector('[data-t=res]').click()};
+load();setInterval(load,120000);
+</script></body></html>
